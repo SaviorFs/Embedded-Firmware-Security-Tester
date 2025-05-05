@@ -1,0 +1,6 @@
+*.hex
+*.elf
+*.bin
+Logs/*.txt
+__pycache__/
+*.pyc

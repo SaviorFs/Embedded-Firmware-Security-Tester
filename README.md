@@ -1,19 +1,25 @@
 # Embedded Firmware Security Tester
 
-This project simulates security attacks and malformed input on a simple embedded firmware running on a microcontroller (e.g., Arduino). It tests the system's resilience using automated fuzzing over UART.
+This project provides a test framework for evaluating embedded firmware resilience against malformed input, command injection, and other UART-based protocol violations. It combines Arduino firmware with a Python fuzz tester.
 
-## Structure
-- `ArduinoFirmware/`: Command-based firmware to respond to input
-- `SecurityTester/`: Python-based fuzzer to send malformed/valid commands
-- `Logs/`: Execution logs of fuzzing sessions
-- `Documentation/`: Test plans and vulnerability reports
+## Features
+- Injects structured and random serial data to test microcontroller robustness
+- Detects crashes, resets, and malformed response handling
+- Documents expected vs. actual firmware behavior
+- Provides formal evaluation criteria and logs
+
+## Folder Overview
+- `firmware/`: Arduino sketch for command-based serial interface
+- `tester/`: Python fuzzing scripts using `pyserial`
+- `docs/`: LaTeX + PDF documentation
+- `logs/`: Runtime log outputs for test case analysis
 
 ## Getting Started
-1. Upload firmware from `ArduinoFirmware/device_firmware.ino` to your Arduino
-2. Run `serial_fuzzer.py` from the `SecurityTester` folder
-3. Check `Logs/run_log.txt` for results
+1. Flash `firmware/ArduinoSecurityTest.ino` to an Arduino Uno R4.
+2. Run `tester/fuzzer.py` with the Arduino connected via USB.
+3. Review logs in `logs/` and compare to `docs/EmbeddedSecurityTester.pdf`.
 
-## Future Work
-- I2C/SPI spoofing
-- Buffer overflow detection
-- Watchdog reset logging
+## Requirements
+- Python 3.x
+- `pyserial` library
+- Arduino Uno R4 or compatible board

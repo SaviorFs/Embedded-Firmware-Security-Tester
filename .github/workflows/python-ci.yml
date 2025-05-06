@@ -35,7 +35,7 @@ jobs:
       - name: Run Python unit tests (if available)
         run: |
           if [ -d "tests" ]; then
-            python -m unittest discover -s tests
+            python -m unittest discover -s tests -p 'test_*.py
           else
             echo "No test directory found, skipping unit tests."
           fi

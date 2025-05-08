@@ -1,6 +1,18 @@
-// Intial Serial Command Handler Firmware (more complex to come)
-String inputString = "";
-int temperature = 22; // just a random default value
+// Initial Serial Command Handler Firmware (more complex to come)
+#include <Arduino.h>
+
+#define BUFFER_SIZE 128
+char inputBuffer[BUFFER_SIZE];
+int bufferIndex = 0;
+bool commandReady = false;
+
+int temperature = 22; // default value
+
+// ARM-compatible estimate of free memory
+int freeMemory() {
+  char stackDummy;
+  return &stackDummy - (char*)malloc(4);
+}
 
 String wrapWithChecksum(String msg) {
   int checksum = 0;
@@ -18,45 +30,58 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available()) {
-    inputString = Serial.readStringUntil('\n');
+  while (Serial.available() > 0 && !commandReady) {
+    char incoming = Serial.read();
+    if (incoming == '\n') {
+      inputBuffer[bufferIndex] = '\0';  
+      commandReady = true;
+    } else if (bufferIndex < BUFFER_SIZE - 1) {
+      inputBuffer[bufferIndex++] = incoming;
+    }
+  }
+
+  if (commandReady) {
+    String inputString = String(inputBuffer);
     inputString.trim();
 
-    // checksum validation start
-    int pipeIndex = inputString.indexOf('|');
-    if (pipeIndex == -1) {
-      Serial.println(wrapWithChecksum("ERROR: No Checksum"));
-      return;
-    }
+    handleParsedString(inputString);
 
-    String rawCommand = inputString.substring(0, pipeIndex);
-    String checksumStr = inputString.substring(pipeIndex + 1);
-    int providedChecksum = checksumStr.toInt();
+    bufferIndex = 0;
+    commandReady = false;
+  }
+}
 
-    int computedChecksum = 0;
-    for (int i = 0; i < rawCommand.length(); i++) {
-      computedChecksum += rawCommand[i];
-    }
-    computedChecksum %= 256;
+void handleParsedString(String inputString) {
+  int pipeIndex = inputString.indexOf('|');
+  if (pipeIndex == -1) {
+    Serial.println(wrapWithChecksum("ERROR: No Checksum"));
+    return;
+  }
 
-    if (providedChecksum != computedChecksum) {
-      Serial.println(wrapWithChecksum("ERROR: Invalid Checksum"));
-      return;
-    }
+  String rawCommand = inputString.substring(0, pipeIndex);
+  String checksumStr = inputString.substring(pipeIndex + 1);
+  int providedChecksum = checksumStr.toInt();
 
-    inputString = rawCommand; // replace inputString with verified command
-    // checksum validation end
+  int computedChecksum = 0;
+  for (int i = 0; i < rawCommand.length(); i++) {
+    computedChecksum += rawCommand[i];
+  }
+  computedChecksum %= 256;
 
-    if (inputString.length() == 0 || inputString.length() > 100) {
-      Serial.println(wrapWithChecksum("ERROR: Input too long or empty"));
-    } else {
-      handleCommand(inputString);
-    }
-    inputString = "";
+  if (providedChecksum != computedChecksum) {
+    Serial.println(wrapWithChecksum("ERROR: Invalid Checksum"));
+    return;
+  }
+
+  if (rawCommand.length() == 0 || rawCommand.length() > 100) {
+    Serial.println(wrapWithChecksum("ERROR: Input too long or empty"));
+  } else {
+    handleCommand(rawCommand);
   }
 }
 
 void handleCommand(String cmd) {
+  cmd.trim();  // this will normalize for reliable matching
   Serial.print("Received: ");
   Serial.println(cmd);
 
@@ -80,6 +105,9 @@ void handleCommand(String cmd) {
     }
   } else if (cmd == "READ TEMP") {
     Serial.println(wrapWithChecksum("TEMP=" + String(temperature)));
+  } else if (cmd == "FREE MEM") {
+    int mem = freeMemory();
+    Serial.println(wrapWithChecksum("FREE_MEM=" + String(mem)));
   } else {
     Serial.println(wrapWithChecksum("ERROR: Unknown command"));
   }

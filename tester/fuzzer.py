@@ -11,7 +11,8 @@ LOG_DIR = '../logs'
 VALID_COMMANDS = [
     "READ TEMP",
     "SET TEMP 25",
-    "SET TEMP 50"
+    "SET TEMP 50",
+    "FREE MEM"  # added for embedded memory usage report
 ]
 
 STATIC_FUZZ_CASES = [
@@ -62,7 +63,7 @@ def send_and_receive(ser, msg, logfile):
 
     if not verify_output_checksum(output):
         verdict = "FAIL (bad checksum)"
-    elif "ERROR" in output or "TEMP=" in output or output.startswith("OK"):
+    elif "ERROR" in output or "TEMP=" in output or output.startswith("OK") or "FREE_MEM=" in output:
         verdict = "PASS"
     else:
         verdict = "FAIL"

@@ -12,7 +12,8 @@ VALID_COMMANDS = [
     "READ TEMP",
     "SET TEMP 25",
     "SET TEMP 50",
-    "FREE MEM"  # added for embedded memory usage report
+    "FREE MEM",         # memory usage test
+    "SET TEMP 33"       # EEPROM test: persistent temperature
 ]
 
 STATIC_FUZZ_CASES = [
@@ -48,7 +49,7 @@ def generate_random_fuzz_case():
 def send_and_receive(ser, msg, logfile):
     ser.write(msg.encode())
     ser.flush()
-    time.sleep(0.25)  # note: needs Arduino more time depending on amount of work tests may fail if not enough time is allotted
+    time.sleep(0.25)
 
     result_lines = []
 
@@ -63,7 +64,7 @@ def send_and_receive(ser, msg, logfile):
 
     if not verify_output_checksum(output):
         verdict = "FAIL (bad checksum)"
-    elif "ERROR" in output or "TEMP=" in output or output.startswith("OK") or "FREE_MEM=" in output:
+    elif any(kw in output for kw in ["ERROR", "TEMP=", "FREE_MEM=", "OK"]):
         verdict = "PASS"
     else:
         verdict = "FAIL"
@@ -79,9 +80,16 @@ def main():
     with serial.Serial(PORT, BAUD, timeout=2) as ser, open(log_filename, 'w') as logfile:
         print(f"[+] Logging to {log_filename}")
         time.sleep(2)
-
         ser.reset_input_buffer()
-        logfile.write("=== VALID COMMAND TESTS ===\n")
+
+        # EEPROM persistence test is the SET then prompt reboot, then check logs
+        logfile.write("=== EEPROM PERSISTENCE TEST (MANUAL) ===\n")
+        send_and_receive(ser, add_checksum("SET TEMP 33"), logfile)
+        print("\n Now reboot your Arduino by pressing the reset button once and press ENTER to continue...")
+        input()  # this will be a manual pause for board reboot
+        send_and_receive(ser, add_checksum("READ TEMP"), logfile)
+
+        logfile.write("\n=== VALID COMMAND TESTS ===\n")
         for cmd in VALID_COMMANDS:
             send_and_receive(ser, add_checksum(cmd), logfile)
 

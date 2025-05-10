@@ -1,5 +1,6 @@
 // Initial Serial Command Handler Firmware (more complex to come)
 #include <Arduino.h>
+#include <EEPROM.h>  // Added for non-volatile temp storage
 
 #define BUFFER_SIZE 128
 char inputBuffer[BUFFER_SIZE];
@@ -26,6 +27,13 @@ String wrapWithChecksum(String msg) {
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(500);
+
+  // this will load from EEPROM on boot only works if in valid range
+  int storedTemp = EEPROM.read(0);
+  if (storedTemp >= 0 && storedTemp <= 100) {
+    temperature = storedTemp;
+  }
+
   Serial.println(wrapWithChecksum("READY"));
 }
 
@@ -99,6 +107,7 @@ void handleCommand(String cmd) {
     int temp = tempVal.toInt();
     if (temp >= 0 && temp <= 100) {
       temperature = temp;
+      EEPROM.write(0, temp);  // this will save to EEPROM for persistence
       Serial.println(wrapWithChecksum("OK"));
     } else {
       Serial.println(wrapWithChecksum("ERROR: Out of range"));

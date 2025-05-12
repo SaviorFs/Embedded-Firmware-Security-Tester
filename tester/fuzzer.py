@@ -1,8 +1,8 @@
 import serial
 import time
 import os
-import random
 from datetime import datetime
+import secrets
 
 PORT = 'COM5'  # you have to change serial port according to your device
 BAUD = 9600
@@ -43,7 +43,7 @@ def verify_output_checksum(response):
         return False
 
 def generate_random_fuzz_case():
-    junk = ''.join(random.choices('!@#$%^&*()_+-=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(10, 100)))
+    junk = ''.join(secrets.SystemRandom().choices('!@#$%^&*()_+-=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', k=secrets.SystemRandom().randint(10, 100)))
     return junk + "\n"
 
 def send_and_receive(ser, msg, logfile):
